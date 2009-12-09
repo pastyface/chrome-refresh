@@ -1,0 +1,9 @@
+chrome-refresh
+
+A Google Chrome extension to refresh a tab.
+
+Can be loaded unpacked in chrome://extensions/
+
+http://github.com/pastyface/chrome-refresh
+
+This is licensed under the GPL, see http://www.gnu.org/licenses/gpl.html
