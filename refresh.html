@@ -1,0 +1,92 @@
+<script>
+    
+    var cr = {};
+    cr.reloadingTabs = {};
+    
+    cr.doLogging = true;
+    
+    cr.isRegistered = function(tabId){
+      cr.log('isRegistered tab:'+tabId+
+             ' registered:'+(cr.reloadingTabs[tabId] !== undefined));
+      
+      return cr.reloadingTabs[tabId] !== undefined;
+    }
+    
+    cr.registerTabReload = function(tab, seconds){
+      cr.log('registerTabReload tab:'+tab.id+' seconds:'+seconds);
+    
+      var props = { tab: tab, timeout: seconds, url: tab.url };
+      props.intervalID = setInterval('cr.reloadTab('+tab.id+')', seconds * 1000 );
+      cr.reloadingTabs[tab.id] = props;
+      cr.updateIcon(tab.id);
+    }
+    
+    cr.unregisterTabReload = function(tab){
+      cr.log('unregisterTabReload tab:'+tab.id);
+      
+      var props = cr.reloadingTabs[tab.id];
+      if(props){
+        clearInterval(props.intervalID);
+        delete cr.reloadingTabs[tab.id];
+      }
+      cr.updateIcon(tab.id);
+    }
+    
+    cr.updateIcon = function(tabId){
+      cr.log('updateIcon tab:'+tabId);
+      
+      if(cr.isRegistered(tabId)){
+        chrome.browserAction.setIcon({path:"refresh-on.png", tabId: tabId});
+      }
+      else {
+        chrome.browserAction.setIcon({path:"refresh-off.png", tabId: tabId});
+      }
+    }
+    
+    cr.reloadTab = function(tabId){
+      var props = cr.reloadingTabs[tabId];
+      chrome.tabs.update(tabId, { url: props.tab.url});
+      
+      cr.log('reloaded win:'+props.tab.windowId+' tab:'+tabId);
+    }
+    
+    cr.log = function(msg){
+      if(cr.doLogging){
+        var d = new Date();
+        console.log(d.getHours() +
+              ':' + d.getMinutes() +
+              ':' + d.getSeconds() +
+              ' ' + msg);
+      }
+    }
+    
+    // React when a browser action's icon is clicked.
+    chrome.browserAction.onClicked.addListener(function(tab) {
+      cr.log('button onClicked win:'+tab.windowId+' tab:'+tab.id);
+      
+      if(cr.isRegistered(tab.id)){
+        cr.unregisterTabReload(tab);
+      }
+      else {
+        cr.registerTabReload(tab, 60);
+      }
+    });
+    
+    // Update the icon when the current tab changes
+    chrome.tabs.onSelectionChanged.addListener(function(tabId, selectInfo) {
+      cr.log('onSelectionChanged win:'+selectInfo.windowId+' tab:'+tabId);
+      
+      cr.updateIcon(tabId);
+    });
+    
+    chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+      var props = cr.reloadingTabs[tabId];
+      if(props && props.url === tab.url){
+        cr.updateIcon(tabId);
+      }
+      else {
+        cr.unregisterTabReload(tab);
+      }
+    });
+    
+</script>

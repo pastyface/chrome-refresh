@@ -1,0 +1,12 @@
+{
+  "name": "Chrome Refresh",
+  "version": "1.0",
+  "description": "Refreshes a page",
+  "browser_action": {
+    "default_icon": "refresh-off.png"
+  },
+  "background_page": "refresh.html",
+  "permissions": [
+    "tabs"
+  ]
+}
