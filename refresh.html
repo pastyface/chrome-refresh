@@ -15,6 +15,9 @@
     cr.registerTabReload = function(tab, seconds){
       cr.log('registerTabReload tab:'+tab.id+' seconds:'+seconds);
     
+      cr.unregisterTabReload(tab);
+      if(seconds < 1) return;
+      
       var props = { tab: tab, timeout: seconds, url: tab.url };
       props.intervalID = setInterval('cr.reloadTab('+tab.id+')', seconds * 1000 );
       cr.reloadingTabs[tab.id] = props;
@@ -60,6 +63,7 @@
       }
     }
     
+   /* Now controlled by popup.html
     // React when a browser action's icon is clicked.
     chrome.browserAction.onClicked.addListener(function(tab) {
       cr.log('button onClicked win:'+tab.windowId+' tab:'+tab.id);
@@ -71,6 +75,7 @@
         cr.registerTabReload(tab, 60);
       }
     });
+    */
     
     // Update the icon when the current tab changes
     chrome.tabs.onSelectionChanged.addListener(function(tabId, selectInfo) {

@@ -1,0 +1,138 @@
+
+	<style type="text/css">
+
+.button { 
+                 border-radius: 0.5em; 
+                 display: block; 
+                 font-size: .9em; 
+                 color: black; 
+                 border: 2px solid #7F97A4; 
+                 background: #AEBEC8; 
+                 padding: 2px; 
+                 height: 15px; 
+                 text-align:center; 
+                 cursor: pointer;
+                 }
+body {font-family: Arial, Helvetica, sans-serif;}       
+       
+p { clear:both; }
+fieldset { border:0; margin-top: 1em;}	
+label { margin:0; font-weight: normal;}
+#value {font-weight: bold; }
+
+p.title { font-size: 1.1em; padding: 0px; margin-bottom: 2px; }
+
+div.form-wrapper { margin-bottom: 40px; margin-left: 10px; }
+	
+#slider1, #slider2 { margin:0; padding:0; border:0; }
+
+/* slider widget */
+
+.sliderControl { position: relative;  height: 50px; clear: both; margin-top: 0px; }
+.sliderIndicator {width:36px; height:50px; top: 0; z-index: 3; background:url(slider_pull.gif) no-repeat center bottom; position: absolute;}
+.sliderIndicator span {display: block; font-size: .9em; color: #428b1d; border: 2px solid #428b1d; background: #fff; padding: 2px; height: 11px; text-align:center; }
+
+.xScale {left: 18px; top: 50px; z-index: 1; }
+.xScale, .xScale * {margin: 0; padding: 0; position: relative;}
+.xScale dd, .xScale li {position: absolute; top: 0; text-align: left; list-style: none; font-size:1em; }
+.xScale span {position: absolute; top: .5em; }
+.xScale dd.morning, .xScale li.morning {color: #69a535; border-top: 4px solid #69a535;}
+.xScale dd.evening, .xScale li.evening {color: #428b1d; border-top: 4px solid #428b1d;}
+.xScale dt {position: absolute; top: 3em; color: #808080; text-transform: uppercase; font-size: .9em;}
+.xScale dt.morning {left: 0; color: #69a535;}
+.xScale dt.evening {right: 36px; color: #428b1d;}
+div.sliderSpan {position: absolute; z-index: 0; top: 25px; left: 18px; height: 15px; overflow: hidden; width: 500px;background: #d1d1cd url(slider_spanBG.gif) center no-repeat;}
+div.blotA, div.blotB {position: absolute; left: 0; width: 0;  z-index: 99999; top: 0; border-top: 15px solid #fff; }
+div.scale {display: block; position: absolute; left: 18px; top: 47px; z-index: 2; border-bottom: 1px solid #000; height: 3px;}
+div.scale span {position: absolute; border-right: 1px solid #000; height: 3px;top: 4px; font-size: 0; line-height: 0;}
+p.caption {font-size: 1em; font-style: italic; margin-top: 6em;}
+
+	</style>
+	
+	<script src="testUserDevice.js" type="text/javascript"></script>
+	<script src="jquery-latest.pack.js" type="text/javascript"></script>
+	<script src="interface.js" type="text/javascript"></script>	
+	<script src="jquery.slider.js" type="text/javascript"></script>
+	
+	<script type="text/javascript">
+	enhancedDomReady(function(){
+		$('#slider1').makeSlider('firstLast', 150); // enable pacing slider
+	});
+	</script>
+<script>
+
+$(document).ready(function() {  
+  
+  chrome.tabs.getSelected(window.id, function(tab){
+    
+    var cr = chrome.extension.getBackgroundPage().cr;
+    if(cr.isRegistered(tab.id)){
+      $('#delay').val(cr.reloadingTabs[tab.id].timeout);
+      $('#start').html('Update');
+    }
+  });
+});
+
+chrome.browserAction.onClicked.addListener(function(tab) {
+  
+});
+
+function start() {
+  chrome.tabs.getSelected(window.id, function(tab){
+    var cr = chrome.extension.getBackgroundPage().cr;
+    var selection = parseInt($('#delay').val());
+    cr.registerTabReload(tab, selection);
+  });
+  window.close();
+}
+
+function stop() {
+  chrome.tabs.getSelected(window.id, function(tab){
+    var cr = chrome.extension.getBackgroundPage().cr;
+    cr.unregisterTabReload(tab);
+  });
+  window.close();
+}
+</script>
+<p class="title">Refresh every...</p>
+<div align="center">
+<div class="form-wrapper">
+<form action="#" >
+  <fieldset id="slider1">
+  	<select name="delay" id="delay">
+      <!--option value="0">off</option-->
+  	  <option value="5">5s</option>
+  	  <option value="15">15s</option>
+  	  <option value="30">30s</option>
+  	  <option value="60" selected="selected">1m</option>
+      <option value="300">5m</option>
+      <option value="900">15m</option>
+      <option value="1800">30m</option>
+  	</select>
+  </fieldset>
+</form>
+</div>
+<table width="180">
+  <tr>
+    <td width="32">
+      <div>
+        <div id="value"></div>
+      </div>
+    </td>
+    <td width="60">
+      <div class="button" onclick="stop()" 
+           onMouseDown="this.style.borderStyle='inset';" 
+           onMouseUp="this.style.borderStyle='inherit';">
+        <div id="stop">Stop</div>
+      </div>
+    </td>
+    <td width="60">
+      <div class="button" onclick="start()" 
+           onMouseDown="this.style.borderStyle='inset';" 
+           onMouseUp="this.style.borderStyle='inherit';">
+        <div id="start">Start</div>
+      </div>
+    </td>
+  </tr>
+</table>
+</div>
