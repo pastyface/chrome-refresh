@@ -3,7 +3,7 @@
     var cr = {};
     cr.reloadingTabs = {};
     
-    cr.doLogging = false;
+    cr.doLogging = true;
     
     cr.isRegistered = function(tabId){
       cr.log('isRegistered tab:'+tabId+
@@ -63,6 +63,17 @@
       }
     }
     
+    cr.extractDomain = function(url){
+      cr.log('cr.extractDomain: '+url);
+      
+      var pattern=/^([a-zA-Z]+:\/\/[a-zA-Z0-9\.]+)/;
+      var result = pattern.exec(url);
+      if(result){
+        cr.log('cr.extractDomain result: '+result[1]);
+        return result[1];
+      }
+    }
+    
    /* Now controlled by popup.html
     // React when a browser action's icon is clicked.
     chrome.browserAction.onClicked.addListener(function(tab) {
@@ -86,12 +97,35 @@
     
     chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
       var props = cr.reloadingTabs[tabId];
-      if(props && props.url === tab.url){
-        cr.updateIcon(tabId);
-      }
-      else {
-        cr.unregisterTabReload(tab);
-      }
+      
+      if(!props) return;
+      
+      var tab_stick = localStorage['tab_stick'];
+      
+      if(!tab_stick) tab_stick = 'url';
+      
+      switch(tab_stick){
+        
+        case 'tab':
+            cr.registerTabReload(tab, props.timeout);
+            break;
+        case 'site':
+            if(cr.extractDomain(props.url) === cr.extractDomain(tab.url)){
+              cr.registerTabReload(tab, props.timeout);
+            }
+            else {
+              cr.unregisterTabReload(tab);
+            }
+            break;
+        case 'url': // fall through
+        default:
+            if(props.url === tab.url){
+              cr.updateIcon(tabId);
+            }
+            else {
+              cr.unregisterTabReload(tab);
+            }
+        }
     });
     
 </script>

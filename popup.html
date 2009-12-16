@@ -67,14 +67,21 @@ $(document).ready(function() {
     
     var cr = chrome.extension.getBackgroundPage().cr;
     if(cr.isRegistered(tab.id)){
-      $('#delay').val(cr.reloadingTabs[tab.id].timeout);
       $('#start').html('Update');
+      
+      // try to use timeout value from existing refresh
+      var timeout = cr.reloadingTabs[tab.id].timeout;
     }
-  });
-});
+      
+    // try to read options value
+    if(!timeout) timeout = localStorage['default_delay'];
+    
+    // otherwise default to a minute
+    if(!timeout) timeout = 60;
+    
+    $('#delay').val(timeout);
 
-chrome.browserAction.onClicked.addListener(function(tab) {
-  
+  });
 });
 
 function start() {
@@ -100,7 +107,6 @@ function stop() {
 <form action="#" >
   <fieldset id="slider1">
   	<select name="delay" id="delay">
-      <!--option value="0">off</option-->
   	  <option value="5">5s</option>
   	  <option value="15">15s</option>
   	  <option value="30">30s</option>

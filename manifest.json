@@ -2,6 +2,7 @@
   "name": "Chrome Refresh",
   "version": "1.2",
   "description": "Refreshes a page",
+  "options_page": "options.html",
   "browser_action": {
     "default_icon": "refresh-off.png",
     "default_title": "Refresh",

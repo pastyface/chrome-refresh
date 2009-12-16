@@ -1,0 +1,107 @@
+<html>
+<head>
+<title>Chrome Refresh Options</title>
+<script type="text/javascript">
+
+var options = { 'tab_stick': 'stick',
+                'default_delay': 'delay'
+              };
+
+// Restores select box state to saved value from localStorage.
+function restore_options() {
+  eachOption(restore_option);
+}
+
+// Saves options to localStorage.
+function save_options() {
+  eachOption(save_option);
+  
+  // Update status to let user know options were saved.
+  var status = document.getElementById('status');
+  status.innerHTML = 'Options Saved.';
+  setTimeout(function() {
+    status.innerHTML = '';
+  }, 750);
+}
+
+function save_option(storageKey, elementId){
+  var select = document.getElementById(elementId);
+  var value = select.children[select.selectedIndex].value;
+  localStorage[storageKey] = value;
+}
+
+function restore_option(storageKey, elementId){
+  var value = localStorage[storageKey];
+  if (!value) {
+    return;
+  }
+  var select = document.getElementById(elementId);
+  for (var i = 0; i < select.children.length; i++) {
+    var child = select.children[i];
+    if (child.value == value) {
+      child.selected = 'true';
+      break;
+    }
+  }
+}
+
+function eachOption(func){
+  var key;
+  for(key in options) {
+    if(typeof options[key] !== 'function') {
+      func(key, options[key]);
+    }
+  }
+}
+
+</script>
+
+<style type="text/css">
+body { font-family: Arial, Helvetica, sans-serif; }
+#form_container { margin-left: 40px; }
+</style>  
+
+</head>
+
+<body onload="restore_options()">
+
+<h2>Chrome Refresh Options</h2>
+
+<div id="form_container">
+  <table width="200">
+    <tr>
+      <td>Default time:</td>
+      <td align="right">
+        <select name="delay" id="delay">
+          <option value="5">5s</option>
+          <option value="15">15s</option>
+          <option value="30">30s</option>
+          <option value="60">1m</option>
+          <option value="300">5m</option>
+          <option value="900">15m</option>
+          <option value="1800">30m</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td>Stick on:</td>
+      <td align="right">
+        <select id="stick">
+         <option value="url">URL</option>
+         <option value="site">Web Site</option>
+         <option value="tab">Tab</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td></td>
+      <td align="right">
+        <button onclick="save_options()">Save</button>
+      </td>
+    </tr>
+  </table>
+  <div id="status"></div>
+</div>
+
+</body>
+</html>
