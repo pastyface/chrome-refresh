@@ -1,3 +1,4 @@
+<script src="json2.js" type="text/javascript"></script>
 <script>
     
     var cr = {};
@@ -12,16 +13,24 @@
       return cr.reloadingTabs[tabId] !== undefined;
     }
     
-    cr.registerTabReload = function(tab, seconds){
-      cr.log('registerTabReload tab:'+tab.id+' seconds:'+seconds);
+    cr.registerTabReload = function(tab, seconds, stick){
+      cr.log('registerTabReload tab:'+tab.id+' seconds:'+seconds+' stick:'+stick);
     
       cr.unregisterTabReload(tab);
       if(seconds < 1) return;
       
-      var props = { tab: tab, timeout: seconds, url: tab.url };
+      var props = { tab: tab, 
+                    timeout: seconds, 
+                    stick: stick, 
+                    url: tab.url, 
+                    title: tab.title 
+                  };
+                  
       props.intervalID = setInterval('cr.reloadTab('+tab.id+')', seconds * 1000 );
       cr.reloadingTabs[tab.id] = props;
       cr.updateIcon(tab.id);
+      
+      return props;
     }
     
     cr.unregisterTabReload = function(tab){
@@ -33,6 +42,8 @@
         delete cr.reloadingTabs[tab.id];
       }
       cr.updateIcon(tab.id);
+      
+      return props;
     }
     
     cr.updateIcon = function(tabId){
@@ -48,9 +59,68 @@
     
     cr.reloadTab = function(tabId){
       var props = cr.reloadingTabs[tabId];
+      
+      //TODO read window scroll position
+      
+      // reload page
       chrome.tabs.update(tabId, { url: props.tab.url});
       
+      //TODO restore window scroll position
+      
       cr.log('reloaded win:'+props.tab.windowId+' tab:'+tabId);
+    }
+    
+    cr.loadAllAutos = function(){
+      //TODO cache in a js object
+    
+      var autosJson = localStorage['autos'];
+      if(autosJson){
+        return JSON.parse(autosJson);
+      }
+    }
+    
+    cr.loadAutos = function(url){
+      cr.log('loadAutos url:'+url);
+      
+      var autos = cr.loadAllAutos();
+      if(autos){
+        var props = autos[url];
+        
+        if(props) cr.log('found auto for '+url);
+            
+        return props;
+      }
+    }
+    
+    cr.saveAutos = function(props){
+      cr.log('saveAutos url:'+props.url);
+      
+      var autos = cr.loadAllAutos();
+      
+      if(!autos){
+        autos = {};
+      }
+      
+      autos[props.url] = { url: props.url,
+                           timeout: props.timeout,
+                           stick: props.stick,
+                           title: props.title
+                         };
+      
+      autosJson = JSON.stringify(autos);
+      
+      localStorage['autos'] = autosJson;
+    }
+    
+    cr.removeAutos = function(url){
+      var autos = cr.loadAllAutos();
+      
+      if(autos){
+        delete autos[url];
+        
+        autosJson = JSON.stringify(autos);
+        localStorage['autos'] = autosJson;
+      }
     }
     
     cr.log = function(msg){
@@ -74,20 +144,6 @@
       }
     }
     
-   /* Now controlled by popup.html
-    // React when a browser action's icon is clicked.
-    chrome.browserAction.onClicked.addListener(function(tab) {
-      cr.log('button onClicked win:'+tab.windowId+' tab:'+tab.id);
-      
-      if(cr.isRegistered(tab.id)){
-        cr.unregisterTabReload(tab);
-      }
-      else {
-        cr.registerTabReload(tab, 60);
-      }
-    });
-    */
-    
     // Update the icon when the current tab changes
     chrome.tabs.onSelectionChanged.addListener(function(tabId, selectInfo) {
       cr.log('onSelectionChanged win:'+selectInfo.windowId+' tab:'+tabId);
@@ -95,23 +151,38 @@
       cr.updateIcon(tabId);
     });
     
+    chrome.tabs.onRemoved.addListener(function(tabId) {
+      var props = cr.reloadingTabs[tabId];
+      if(props){
+        cr.unregisterTabReload(props.tab);
+      }
+    });
+    
     chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
       var props = cr.reloadingTabs[tabId];
       
+      if(!props){
+          props = cr.loadAutos(tab.url);
+      }
+      
       if(!props) return;
       
-      var tab_stick = localStorage['tab_stick'];
+      if(!props.tab) props.tab = tab;
+      
+      var tab_stick = props.stick;
+      
+      if(!tab_stick) tab_stick = localStorage['tab_stick'];
       
       if(!tab_stick) tab_stick = 'url';
       
       switch(tab_stick){
         
         case 'tab':
-            cr.registerTabReload(tab, props.timeout);
+            cr.registerTabReload(tab, props.timeout, tab_stick);
             break;
         case 'site':
             if(cr.extractDomain(props.url) === cr.extractDomain(tab.url)){
-              cr.registerTabReload(tab, props.timeout);
+              cr.registerTabReload(tab, props.timeout, tab_stick);
             }
             else {
               cr.unregisterTabReload(tab);
@@ -120,7 +191,7 @@
         case 'url': // fall through
         default:
             if(props.url === tab.url){
-              cr.updateIcon(tabId);
+              cr.registerTabReload(tab, props.timeout, tab_stick);
             }
             else {
               cr.unregisterTabReload(tab);

@@ -1,28 +1,18 @@
 
 	<style type="text/css">
 
-.button { 
-                 border-radius: 0.5em; 
-                 display: block; 
-                 font-size: .9em; 
-                 color: black; 
-                 border: 2px solid #7F97A4; 
-                 background: #AEBEC8; 
-                 padding: 2px; 
-                 height: 15px; 
-                 text-align:center; 
-                 cursor: pointer;
-                 }
 body {font-family: Arial, Helvetica, sans-serif;}       
        
 p { clear:both; }
 fieldset { border:0; margin-top: 1em;}	
 label { margin:0; font-weight: normal;}
-#value {font-weight: bold; }
+/*#value {font-weight: bold; }*/
+.radioOpt { font-size: 0.75em; }
+.disabled { color: silver; }
 
-p.title { font-size: 1.1em; padding: 0px; margin-bottom: 2px; }
+p.title { font-size: 1.0em; padding: 0px; margin-bottom: 2px; }
 
-div.form-wrapper { margin-bottom: 40px; margin-left: 10px; }
+div.form-wrapper { margin-bottom: 40px; margin-left: 1px; }
 	
 #slider1, #slider2 { margin:0; padding:0; border:0; }
 
@@ -32,7 +22,7 @@ div.form-wrapper { margin-bottom: 40px; margin-left: 10px; }
 .sliderIndicator {width:36px; height:50px; top: 0; z-index: 3; background:url(slider_pull.gif) no-repeat center bottom; position: absolute;}
 .sliderIndicator span {display: block; font-size: .9em; color: #428b1d; border: 2px solid #428b1d; background: #fff; padding: 2px; height: 11px; text-align:center; }
 
-.xScale {left: 18px; top: 50px; z-index: 1; }
+.xScale {left: 15px; top: 50px; z-index: 1; }
 .xScale, .xScale * {margin: 0; padding: 0; position: relative;}
 .xScale dd, .xScale li {position: absolute; top: 0; text-align: left; list-style: none; font-size:1em; }
 .xScale span {position: absolute; top: .5em; }
@@ -41,9 +31,9 @@ div.form-wrapper { margin-bottom: 40px; margin-left: 10px; }
 .xScale dt {position: absolute; top: 3em; color: #808080; text-transform: uppercase; font-size: .9em;}
 .xScale dt.morning {left: 0; color: #69a535;}
 .xScale dt.evening {right: 36px; color: #428b1d;}
-div.sliderSpan {position: absolute; z-index: 0; top: 25px; left: 18px; height: 15px; overflow: hidden; width: 500px;background: #d1d1cd url(slider_spanBG.gif) center no-repeat;}
+div.sliderSpan {position: absolute; z-index: 0; top: 25px; left: 15px; height: 15px; overflow: hidden; width: 500px;background: #d1d1cd url(slider_spanBG.gif) center no-repeat;}
 div.blotA, div.blotB {position: absolute; left: 0; width: 0;  z-index: 99999; top: 0; border-top: 15px solid #fff; }
-div.scale {display: block; position: absolute; left: 18px; top: 47px; z-index: 2; border-bottom: 1px solid #000; height: 3px;}
+div.scale {display: block; position: absolute; left: 15px; top: 47px; z-index: 2; border-bottom: 1px solid #000; height: 3px;}
 div.scale span {position: absolute; border-right: 1px solid #000; height: 3px;top: 4px; font-size: 0; line-height: 0;}
 p.caption {font-size: 1em; font-style: italic; margin-top: 6em;}
 
@@ -56,7 +46,7 @@ p.caption {font-size: 1em; font-style: italic; margin-top: 6em;}
 	
 	<script type="text/javascript">
 	enhancedDomReady(function(){
-		$('#slider1').makeSlider('firstLast', 150); // enable pacing slider
+		$('#slider1').makeSlider('firstLast', 185); // enable pacing slider
 	});
 	</script>
 <script>
@@ -69,18 +59,41 @@ $(document).ready(function() {
     if(cr.isRegistered(tab.id)){
       $('#start').html('Update');
       
-      // try to use timeout value from existing refresh
+      // try to use values from existing refresh
       var timeout = cr.reloadingTabs[tab.id].timeout;
+      var stick = cr.reloadingTabs[tab.id].stick;
     }
+    
+    // try to read autos value
+    var autos = cr.loadAutos(tab.url);
+    if(autos){
+      $('#auto').attr('checked', true);
       
+      if(!timeout) timeout = autos.timeout;
+      if(!stick) stick = autos.stick;
+    }
+    
     // try to read options value
     if(!timeout) timeout = localStorage['default_delay'];
+    if(!stick) stick = localStorage['tab_stick'];
     
-    // otherwise default to a minute
+    // otherwise use defaults
     if(!timeout) timeout = 60;
+    if(!stick) stick = 'url';
     
-    $('#delay').val(timeout);
+    // update the form
+    var delay = $('#delay');
+    delay.val(timeout);
 
+    $('input[@name=stick]').each(function() {
+      if($(this).val() === stick) {
+        $(this).attr('checked', 'checked');
+      }
+    });
+    
+    if(stick !== 'url'){
+      setAutoable(false);
+    }
   });
 });
 
@@ -88,7 +101,15 @@ function start() {
   chrome.tabs.getSelected(window.id, function(tab){
     var cr = chrome.extension.getBackgroundPage().cr;
     var selection = parseInt($('#delay').val());
-    cr.registerTabReload(tab, selection);
+    var stick = $('input[@name=stick]:checked').val();
+    var props = cr.registerTabReload(tab, selection, stick);
+    
+    if($('#auto').attr('checked')){
+      cr.saveAutos(props);
+    }
+    else{
+      cr.removeAutos(props.url);
+    }
   });
   window.close();
 }
@@ -96,12 +117,52 @@ function start() {
 function stop() {
   chrome.tabs.getSelected(window.id, function(tab){
     var cr = chrome.extension.getBackgroundPage().cr;
-    cr.unregisterTabReload(tab);
+    var props = cr.unregisterTabReload(tab);
+    
+    if(props && !($('#auto').attr('checked'))){
+      cr.removeAutos(props.url);
+    }
   });
   window.close();
 }
+
+function setAutoable(isAuto){
+  if(isAuto){
+    $('#auto').removeAttr('disabled'); 
+    $('#label-auto').removeClass('disabled'); 
+  }
+  else {
+    $('#auto').attr('disabled', true); 
+    $('#auto').removeAttr('checked');
+    $('#label-auto').addClass('disabled'); 
+  }
+}
+
 </script>
-<p class="title">Refresh every...</p>
+<p class="title">Refresh this:</p>
+<div align="center">
+<table width="180">
+  <tr>
+    <td>
+      <span class="radioOpt">
+        <label for="r1">
+          <input id="r1" type="radio" name="stick" value="url" onClick="setAutoable(true);" />
+          URL
+        </label>
+        <label for="r2">
+          <input id="r2" type="radio" name="stick" value="site" onClick="setAutoable(false);" />
+          Website
+        </label>
+        <label for="r3">
+          <input id="r3" type="radio" name="stick" value="tab" onClick="setAutoable(false);" />
+          Tab
+        </label>
+      </span>
+    </td>
+  </tr>
+</table>
+</div>
+<p class="title">Every: <span id="value"></span></p>
 <div align="center">
 <div class="form-wrapper">
 <form action="#" >
@@ -118,26 +179,25 @@ function stop() {
   </fieldset>
 </form>
 </div>
-<table width="180">
+
+<div align="left">
+  <input id="auto" type="checkbox" value="auto" />
+  <label id="label-auto" for="auto">Start Automatically</label>
+</div> 
+<br/>
+<table width="200">
   <tr>
-    <td width="32">
-      <div>
-        <div id="value"></div>
-      </div>
+    <td width="80">
     </td>
-    <td width="60">
-      <div class="button" onclick="stop()" 
-           onMouseDown="this.style.borderStyle='inset';" 
-           onMouseUp="this.style.borderStyle='inherit';">
-        <div id="stop">Stop</div>
-      </div>
+    <td width="40">
+      <button id="stop" class="button" onclick="stop()">
+        Stop
+      </button>
     </td>
-    <td width="60">
-      <div class="button" onclick="start()" 
-           onMouseDown="this.style.borderStyle='inset';" 
-           onMouseUp="this.style.borderStyle='inherit';">
-        <div id="start">Start</div>
-      </div>
+    <td width="40">
+      <button id="start" class="button" onclick="start()">
+        Start
+      </button>
     </td>
   </tr>
 </table>
