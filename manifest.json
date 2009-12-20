@@ -9,6 +9,16 @@
     "popup": "popup.html" 
   },
   "background_page": "refresh.html",
+  "content_scripts": [
+	  {
+	    "matches": ["http://*/*", "https://*/*"],
+        "css": [],
+        "js": ["jquery-latest.pack.js", 
+               "jquery.dimensions.pack.js",
+               "scrollTop.js"
+              ]
+	  }
+  ],
   "permissions": [
     "tabs"
   ]
