@@ -1,6 +1,6 @@
 {
   "name": "Chrome Refresh",
-  "version": "1.5",
+  "version": "1.6",
   "description": "Refreshes a page",
   "options_page": "options.html",
   "browser_action": {

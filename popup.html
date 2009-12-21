@@ -1,7 +1,7 @@
 
 	<style type="text/css">
 
-body {font-family: Arial, Helvetica, sans-serif;}       
+body {font-family: Arial, Helvetica, sans-serif; }       
        
 p { clear:both; }
 fieldset { border:0; margin-top: 1em;}	
@@ -9,10 +9,13 @@ label { margin:0; font-weight: normal;}
 /*#value {font-weight: bold; }*/
 .radioOpt { font-size: 0.75em; }
 .disabled { color: silver; }
+button {width: 70px}
 
 p.title { font-size: 1.0em; padding: 0px; margin-bottom: 2px; }
 
-div.form-wrapper { margin-bottom: 40px; margin-left: 1px; }
+#form-wrapper { margin-bottom: 40px; margin-left: 1px; }
+#main-wrapper {  height: 40px; }
+#dragHelper { display: inline;}
 	
 #slider1, #slider2 { margin:0; padding:0; border:0; }
 
@@ -60,8 +63,10 @@ $(document).ready(function() {
       $('#start').html('Update');
       
       // try to use values from existing refresh
-      var timeout = cr.reloadingTabs[tab.id].timeout;
-      var stick = cr.reloadingTabs[tab.id].stick;
+      var props = cr.reloadingTabs[tab.id];
+      var timeout = props.timeout;
+      var stick = props.stick;
+      var countdown = props.countdown;
     }
     
     // try to read autos value
@@ -71,11 +76,13 @@ $(document).ready(function() {
       
       if(!timeout) timeout = autos.timeout;
       if(!stick) stick = autos.stick;
+      if(!countdown) countdown = autos.countdown;
     }
     
     // try to read options value
     if(!timeout) timeout = localStorage['default_delay'];
     if(!stick) stick = localStorage['tab_stick'];
+    if(!countdown) countdown = localStorage['countdown'];
     
     // otherwise use defaults
     if(!timeout) timeout = 60;
@@ -94,15 +101,25 @@ $(document).ready(function() {
     if(stick !== 'url'){
       setAutoable(false);
     }
+    
+    if(countdown){
+      $('#countdown').attr('checked', true);
+    }
+    else{
+      $('#countdown').removeAttr('checked');
+    }
   });
 });
 
 function start() {
   chrome.tabs.getSelected(window.id, function(tab){
     var cr = chrome.extension.getBackgroundPage().cr;
+    
     var selection = parseInt($('#delay').val());
     var stick = $('input[@name=stick]:checked').val();
-    var props = cr.registerTabReload(tab, selection, stick);
+    var countdown = $('#countdown').attr('checked') ? true : false;
+    
+    var props = cr.registerTabReload(tab, selection, stick, countdown);
     
     if($('#auto').attr('checked')){
       cr.saveAutos(props);
@@ -140,7 +157,7 @@ function setAutoable(isAuto){
 
 </script>
 <p class="title">Refresh this:</p>
-<div align="center">
+<div id="main-wrapper" align="center">
 <table width="180">
   <tr>
     <td>
@@ -164,7 +181,7 @@ function setAutoable(isAuto){
 </div>
 <p class="title">Every: <span id="value"></span></p>
 <div align="center">
-<div class="form-wrapper">
+<div id="form-wrapper">
 <form action="#" >
   <fieldset id="slider1">
   	<select name="delay" id="delay">
@@ -180,6 +197,11 @@ function setAutoable(isAuto){
 </form>
 </div>
 
+<div align="left">
+  <input id="countdown" type="checkbox" value="countdown" />
+  <label id="label-countdown" for="countdown">Show Countdown</label>
+</div> 
+<br/>
 <div align="left">
   <input id="auto" type="checkbox" value="auto" />
   <label id="label-auto" for="auto">Start Automatically</label>
