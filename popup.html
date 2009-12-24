@@ -119,7 +119,13 @@ function start() {
     var stick = $('input[@name=stick]:checked').val();
     var countdown = $('#countdown').attr('checked') ? true : false;
     
-    var props = cr.registerTabReload(tab, selection, stick, countdown);
+    var props = { tab: tab, 
+                    timeout: selection, 
+                    countdown: countdown,
+                    stick: stick
+                  };
+
+    props = cr.registerTabReload(props);
     
     if($('#auto').attr('checked')){
       cr.saveAutos(props);

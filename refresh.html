@@ -1,51 +1,33 @@
-<script src="json2.js" type="text/javascript"></script>
 <script>
     
     var cr = {};
     cr.reloadingTabs = {};
     
-    cr.doLogging = false;
+    cr.doLogging = true;
     
     cr.isRegistered = function(tabId){
-      cr.log('isRegistered tab:'+tabId+
-             ' registered:'+(cr.reloadingTabs[tabId] !== undefined));
-      
       return cr.reloadingTabs[tabId] !== undefined;
     }
     
-    cr.registerTabReload = function(tab, seconds, stick, countdown){
-      cr.log('registerTabReload tab:'+tab.id+' seconds:'+seconds+' stick:'+stick);
-    
-      cr.unregisterTabReload(tab);
-      if(seconds < 1) return;
+    cr.registerTabReload = function(props){
+      cr.unregisterTabReload(props.tab);
+      if(props.timeout < 1) return;
       
-      var nextUpdate = new Date().getTime() + (seconds * 1000);
+      props.nextUpdate = new Date().getTime() + (props.timeout * 1000);       
+      props.intervalID = setInterval('cr.reloadTab('+props.tab.id+')', props.timeout * 1000 );
+      cr.reloadingTabs[props.tab.id] = props;
+      cr.updateIcon(props.tab.id);
       
-      var props = { tab: tab, 
-                    timeout: seconds, 
-                    nextUpdate: nextUpdate,
-                    countdown: countdown,
-                    stick: stick, 
-                    url: tab.url, 
-                    title: tab.title 
-                  };
-                  
-      props.intervalID = setInterval('cr.reloadTab('+tab.id+')', seconds * 1000 );
-      cr.reloadingTabs[tab.id] = props;
-      cr.updateIcon(tab.id);
-      
-      if(countdown && !cr.countdownIntervalID){
+      if(props.countdown && !cr.countdownIntervalID){
         cr.countdownIntervalID = setInterval('cr.updateCountdown()', 1000 );
       }
       
-      if(countdown) cr.updateCountdown(true);
+      if(props.countdown) cr.updateCountdown(true);
       
       return props;
     }
     
     cr.unregisterTabReload = function(tab){
-      cr.log('unregisterTabReload tab:'+tab.id);
-      
       var props = cr.reloadingTabs[tab.id];
       if(props){
         clearInterval(props.intervalID);
@@ -61,8 +43,6 @@
     }
     
     cr.updateIcon = function(tabId){
-      cr.log('updateIcon tab:'+tabId);
-      
       if(cr.isRegistered(tabId)){
         chrome.browserAction.setIcon({path:"refresh-on.png", tabId: tabId});
       }
@@ -74,23 +54,35 @@
     cr.reloadTab = function(tabId){
       var props = cr.reloadingTabs[tabId];
       
-      //TODO read window scroll position
+      if(!props || !props.tab){
+        return;
+      }
+      
+      //read window scroll position
+      props.scrollTop = 0;
+      chrome.tabs.sendRequest(tabId, {action: "getScrollTop"}, function(response) {
+        if(!response || !response.scrollTop){
+          console.error('response.scrollTop is missing');
+          return;
+        }
+
+        console.log('scroll top get response: '+response.scrollTop);
+	console.log('props: '+props);
+        props.scrollTop = response.scrollTop;
+        cr.reloadingTabs[tabId] = props;
+      });
       
       // reload page
       chrome.tabs.update(tabId, { url: props.tab.url});
-      
-      //TODO restore window scroll position
       
       props.nextUpdate = new Date().getTime() + (props.timeout * 1000);
       
       if(props.countdown) cr.updateCountdown(true);
       
-      cr.log('reloaded win:'+props.tab.windowId+' tab:'+tabId);
+      console.log('reloaded win:'+props.tab.windowId+' tab:'+tabId);
     }
     
     cr.loadAllAutos = function(){
-      //TODO cache in a js object
-    
       var autosJson = localStorage['autos'];
       if(autosJson){
         return JSON.parse(autosJson);
@@ -98,21 +90,17 @@
     }
     
     cr.loadAutos = function(url){
-      cr.log('loadAutos url:'+url);
-      
       var autos = cr.loadAllAutos();
       if(autos){
         var props = autos[url];
         
-        if(props) cr.log('found auto for '+url);
+        if(props) console.log('found auto for '+url);
             
         return props;
       }
     }
     
     cr.saveAutos = function(props){
-      cr.log('saveAutos url:'+props.url);
-      
       var autos = cr.loadAllAutos();
       
       if(!autos){
@@ -153,12 +141,9 @@
     }
     
     cr.extractDomain = function(url){
-      cr.log('cr.extractDomain: '+url);
-      
       var pattern=/^([a-zA-Z]+:\/\/[a-zA-Z0-9\.]+)/;
       var result = pattern.exec(url);
       if(result){
-        cr.log('cr.extractDomain result: '+result[1]);
         return result[1];
       }
     }
@@ -201,8 +186,6 @@
     
     // Update the icon when the current tab changes
     chrome.tabs.onSelectionChanged.addListener(function(tabId, selectInfo) {
-      cr.log('onSelectionChanged win:'+selectInfo.windowId+' tab:'+tabId);
-      
       cr.updateIcon(tabId);
     });
     
@@ -229,15 +212,18 @@
       if(!tab_stick) tab_stick = localStorage['tab_stick'];
       
       if(!tab_stick) tab_stick = 'url';
+
+      props.stick = tab_stick;
+      props.url = tab.url;
       
       switch(tab_stick){
         
         case 'tab':
-            cr.registerTabReload(tab, props.timeout, tab_stick, props.countdown);
+            cr.registerTabReload(props);
             break;
         case 'site':
             if(cr.extractDomain(props.url) === cr.extractDomain(tab.url)){
-              cr.registerTabReload(tab, props.timeout, tab_stick, props.countdown);
+              cr.registerTabReload(props);
             }
             else {
               cr.unregisterTabReload(tab);
@@ -246,12 +232,31 @@
         case 'url': // fall through
         default:
             if(props.url === tab.url){
-              cr.registerTabReload(tab, props.timeout, tab_stick, props.countdown);
+              cr.registerTabReload(props);
             }
             else {
               cr.unregisterTabReload(tab);
             }
         }
     });
+    
+    chrome.extension.onRequest.addListener(
+      function(request, sender, sendResponse) {
+        if (request.action == "ready"){
+          var props = cr.reloadingTabs[sender.tab.id];
+
+          sendResponse({});
+
+          //restore window scroll position
+          if(props && props.scrollTop && props.scrollTop > 0) {
+            chrome.tabs.sendRequest(sender.tab.id, {action: "setScrollTop", pos: props.scrollTop});
+          }
+          
+        }
+        else {
+          sendResponse({});
+        }
+    });
+    
     
 </script>
