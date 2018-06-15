@@ -1,15 +1,19 @@
 {
-  "name": "Chrome Refresh",
-  "version": "1.6",
-  "description": "Refreshes a page",
-  "options_page": "options.html",
-  "browser_action": {
-    "default_icon": "refresh-off.png",
-    "default_title": "Refresh",
-    "popup": "popup.html" 
-  },
-  "background_page": "refresh.html",
-  "permissions": [
-    "tabs"
-  ]
+   "background": "refresh.html",
+   "browser_action": {
+      "default_icon": "refresh-off.png",
+      "default_title": "Refresh",
+      "popup": "popup.html"
+   },
+   "content_scripts": [ {
+      "css": [  ],
+      "js": [ "jquery-latest.pack.js", "jquery.dimensions.pack.js", "scrollTop.js" ],
+      "matches": [ "http://*/*", "https://*/*" ]
+   } ],
+   "description": "Refreshes a page",
+   "name": "Chrome Refresh",
+   "options_page": "options.html",
+   "permissions": [ "tabs" ],
+   "version": "1.7",
+   "manifest_version": 2
 }
