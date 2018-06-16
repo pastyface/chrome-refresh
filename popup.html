@@ -45,123 +45,9 @@ p.caption {font-size: 1em; font-style: italic; margin-top: 6em;}
 	<script src="testUserDevice.js" type="text/javascript"></script>
 	<script src="jquery-latest.pack.js" type="text/javascript"></script>
 	<script src="interface.js" type="text/javascript"></script>	
-	<script src="jquery.slider.js" type="text/javascript"></script>
+  <script src="jquery.slider.js" type="text/javascript"></script>
+  <script src="popup.js" type="text/javascript"></script>
 	
-	<script type="text/javascript">
-	enhancedDomReady(function(){
-		$('#slider1').makeSlider('firstLast', 185); // enable pacing slider
-	});
-	</script>
-<script>
-
-$(document).ready(function() {  
-  
-  chrome.tabs.getSelected(window.id, function(tab){
-    
-    var cr = chrome.extension.getBackgroundPage().cr;
-    if(cr.isRegistered(tab.id)){
-      $('#start').html('Update');
-      
-      // try to use values from existing refresh
-      var props = cr.reloadingTabs[tab.id];
-      var timeout = props.timeout;
-      var stick = props.stick;
-      var countdown = props.countdown;
-    }
-    
-    // try to read autos value
-    var autos = cr.loadAutos(tab.url);
-    if(autos){
-      $('#auto').attr('checked', true);
-      
-      if(!timeout) timeout = autos.timeout;
-      if(!stick) stick = autos.stick;
-      if(!countdown) countdown = autos.countdown;
-    }
-    
-    // try to read options value
-    if(!timeout) timeout = localStorage['default_delay'];
-    if(!stick) stick = localStorage['tab_stick'];
-    if(!countdown) countdown = localStorage['countdown'];
-    
-    // otherwise use defaults
-    if(!timeout) timeout = 60;
-    if(!stick) stick = 'url';
-    
-    // update the form
-    var delay = $('#delay');
-    delay.val(timeout);
-
-    $('input[@name=stick]').each(function() {
-      if($(this).val() === stick) {
-        $(this).attr('checked', 'checked');
-      }
-    });
-    
-    if(stick !== 'url'){
-      setAutoable(false);
-    }
-    
-    if(countdown){
-      $('#countdown').attr('checked', true);
-    }
-    else{
-      $('#countdown').removeAttr('checked');
-    }
-  });
-});
-
-function start() {
-  chrome.tabs.getSelected(window.id, function(tab){
-    var cr = chrome.extension.getBackgroundPage().cr;
-    
-    var selection = parseInt($('#delay').val());
-    var stick = $('input[@name=stick]:checked').val();
-    var countdown = $('#countdown').attr('checked') ? true : false;
-    
-    var props = { tab: tab, 
-                    timeout: selection, 
-                    countdown: countdown,
-                    stick: stick
-                  };
-
-    props = cr.registerTabReload(props);
-    
-    if($('#auto').attr('checked')){
-      cr.saveAutos(props);
-    }
-    else{
-      cr.removeAutos(props.url);
-    }
-  });
-  window.close();
-}
-
-function stop() {
-  chrome.tabs.getSelected(window.id, function(tab){
-    var cr = chrome.extension.getBackgroundPage().cr;
-    var props = cr.unregisterTabReload(tab);
-    
-    if(props && !($('#auto').attr('checked'))){
-      cr.removeAutos(props.url);
-    }
-  });
-  window.close();
-}
-
-function setAutoable(isAuto){
-  if(isAuto){
-    $('#auto').removeAttr('disabled'); 
-    $('#label-auto').removeClass('disabled'); 
-  }
-  else {
-    $('#auto').attr('disabled', true); 
-    $('#auto').removeAttr('checked');
-    $('#label-auto').addClass('disabled'); 
-  }
-}
-
-</script>
 <p class="title">Refresh this:</p>
 <div id="main-wrapper" align="center">
 <table width="180">
@@ -169,15 +55,15 @@ function setAutoable(isAuto){
     <td>
       <span class="radioOpt">
         <label for="r1">
-          <input id="r1" type="radio" name="stick" value="url" onClick="setAutoable(true);" />
+          <input id="r1" type="radio" name="stick" value="url" />
           URL
         </label>
         <label for="r2">
-          <input id="r2" type="radio" name="stick" value="site" onClick="setAutoable(false);" />
+          <input id="r2" type="radio" name="stick" value="site" />
           Website
         </label>
         <label for="r3">
-          <input id="r3" type="radio" name="stick" value="tab" onClick="setAutoable(false);" />
+          <input id="r3" type="radio" name="stick" value="tab" />
           Tab
         </label>
       </span>
@@ -218,12 +104,12 @@ function setAutoable(isAuto){
     <td width="80">
     </td>
     <td width="40">
-      <button id="stop" class="button" onclick="stop()">
+      <button id="stop" class="button">
         Stop
       </button>
     </td>
     <td width="40">
-      <button id="start" class="button" onclick="start()">
+      <button id="start" class="button">
         Start
       </button>
     </td>

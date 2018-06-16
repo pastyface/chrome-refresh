@@ -1,212 +1,105 @@
 <html>
+
 <head>
-<title>Chrome Refresh Options</title>
-<script src="jquery-latest.pack.js" type="text/javascript"></script>
-<script type="text/javascript">
+  <title>Chrome Refresh Options</title>
+  <script src="jquery-latest.pack.js" type="text/javascript"></script>
+  <script src="options.js" type="text/javascript"></script>
 
-var options = { 'tab_stick': 'stick',
-                'default_delay': 'delay',
-                'countdown': 'countdown'
-              };
+  <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="bootstrap-theme.min.css">
 
-// Restores select box state to saved value from localStorage.
-function restore_options() {
-  eachOption(restore_option);
-  
-  displayAutos();
-}
-
-// Saves options to localStorage.
-function save_options() {
-  eachOption(save_option);
-  
-  // Update status to let user know options were saved.
-  var status = document.getElementById('status');
-  status.innerHTML = 'Options Saved.';
-  setTimeout(function() {
-    status.innerHTML = '';
-  }, 750);
-}
-
-function save_option(storageKey, elementId){
-  var element = document.getElementById(elementId);
-  var type = element.constructor.name;
-  
-  if(type === 'HTMLSelectElement'){
-    var value = element.children[element.selectedIndex].value;
-    
-  }
-  else if(type === 'HTMLInputElement'){
-    if(element.type === 'checkbox'){
-      var value = $(element).attr('checked');
+  <style type="text/css">
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-weight: normal;
     }
-    else {
-      var value = $(element).val();
-    }
-  }
-  
-  if(value){
-    localStorage[storageKey] = value;
-  }
-  else {
-    delete localStorage[storageKey]; 
-  }
-}
 
-function restore_option(storageKey, elementId){
-  var value = localStorage[storageKey];
-  if (!value) {
-    return;
-  }
-  
-  var element = document.getElementById(elementId);
-  var type = element.constructor.name;
-  
-  if(type === 'HTMLSelectElement'){
-    for (var i = 0; i < element.children.length; i++) {
-      var child = element.children[i];
-      if (child.value == value) {
-        child.selected = 'true';
-        break;
-      }
+    #form_container {
+      padding: 10px;
     }
-  }
-  else if(type === 'HTMLInputElement'){
-    if(element.type === 'checkbox'){
-      if(value){
-        $(element).attr('checked', 'checked');
-      }
-      else {
-        $(element).removeAttr('checked');
-      }
+
+    th {
+      padding: 2px;
+      text-align: left;
     }
-    else {
-      $(element).val(value);
+
+    tr.autos {
+      font-size: 0.8em;
     }
-  }
-}
 
-function eachOption(func){
-  var key;
-  for(key in options) {
-    if(typeof options[key] !== 'function') {
-      func(key, options[key]);
+    .clickable {
+      cursor: pointer;
     }
-  }
-}
 
-function displayAutos(){
-  var cr = chrome.extension.getBackgroundPage().cr;
-  var autos = cr.loadAllAutos();
-  
-  var autoCount = 0;
-  var content = '<table><tr><th width="20"></th>' +
-                           '<th>Title</th>' +
-                           '<th>URL</th>' +
-                           '<th align="center">Delay</th>' +
-                           '</tr>';
-  
-  for(key in autos) {
-    if(typeof autos[key] !== 'function') {
-      var props = autos[key];
-      var row = '<tr class="autos"><td><img src="delete.png" onClick="deleteAuto(\''+props.url+'\')" class="clickable"/>'+
-                '</td><td>' + props.title +
-                '</td><td><a href="'+props.url+'">' + props.url +'</a>'+
-                '</td><td align="center">' + props.timeout +
-                '</td></tr>';
-      content += row;
-      autoCount++;
+    #label-countdown {
+      font-size: 0.8em;
     }
-  }
-  
-  content += '</table>';
-  
-  if(autoCount > 0){
-    $('#autos').html(content);
-  }
-  else {
-    $('#autos').html('<em>none</em>');
-  }
-}
 
-function deleteAuto(url){
-  var prompt = 'Stop automatically refreshing '+url;
-  if(confirm(prompt)){
-    var cr = chrome.extension.getBackgroundPage().cr;
-    cr.removeAutos(url);
-    displayAutos();
-  }
-}
-
-</script>
-
-<style type="text/css">
-body { font-family: Arial, Helvetica, sans-serif; font-weight: normal;}
-#form_container { padding: 10px; }
-th { padding: 2px; text-align: left;}
-tr.autos { font-size: 0.8em; }
-.clickable {cursor: pointer;}
-#label-countdown { font-size: 0.8em; }
-</style>  
+    .remove {
+      color: #e00;
+    }
+  </style>
 
 </head>
 
-<body onload="restore_options()">
+<body>
 
-  <div id="form_container">
-<h2>Chrome Refresh Options</h2>
+  <div id="form_container" class="container-fluid">
+    <h3><img src="refresh-on.png"/> Chrome Refresh Options</h3>
+   
+    <div class="row">
+      <div class="col-sm-8">
+        <!-- allow users to add a set of URLs which automatically refresh themselves -->
+        <div class="panel panel-default">
+          <div class="panel-heading">Automatic Refresh</div>
+          <div class="panel-body">
+            <div id="autos"></div>
+          </div>
+        </div>
 
-<!-- allow users to add a set of URLs which automatically refresh themselves -->
-<fieldset>
-  <legend>Automatic Refresh</legend>
-  <div id="autos"></div>
-</fieldset>
-<br/>
+        <div class="panel panel-default">
+          <div class="panel-heading">Defaults</div>
+          <div class="panel-body">
+            <div class="form-group">
+              <label for="stick">Stick on:</label>
+              <select id="stick" class="selectpicker">
+                <option value="url">URL</option>
+                <option value="site">Website</option>
+                <option value="tab">Tab</option>
+              </select>
+            </div>
 
-<fieldset>
-  <legend>Defaults</legend>
+            <div class="form-group">
+              <label for="delay">Delay:</label>
+              <select name="delay" id="delay" class="selectpicker">
+                <option value="5">5s</option>
+                <option value="15">15s</option>
+                <option value="30">30s</option>
+                <option value="60">1m</option>
+                <option value="300">5m</option>
+                <option value="900">15m</option>
+                <option value="1800">30m</option>
+              </select>
+            </div>
+  
+            <div class="form-group">
+              <label for="countdown">Show Countdown:</label>
+              <input id="countdown" type="checkbox" value="countdown" />
+            </div>
+          </div>
+        </div>
 
-  <table width="200">
-    <tr>
-      <td>Stick on:</td>
-      <td align="right">
-        <select id="stick">
-         <option value="url">URL</option>
-         <option value="site">Website</option>
-         <option value="tab">Tab</option>
-        </select>
-      </td>
-    </tr>
-    <tr>
-      <td>Delay:</td>
-      <td align="right">
-        <select name="delay" id="delay">
-          <option value="5">5s</option>
-          <option value="15">15s</option>
-          <option value="30">30s</option>
-          <option value="60">1m</option>
-          <option value="300">5m</option>
-          <option value="900">15m</option>
-          <option value="1800">30m</option>
-        </select>
-      </td>
-    </tr>
-    <tr>
-      <td>Countdown:</td>
-      <td align="right">
-        <input id="countdown" type="checkbox" value="countdown" />
-        <label id="label-countdown" for="countdown">Show</label>
-      </td>
-    </tr>
-  </table>
-</fieldset>
+        <div align="right">
+          <button id="save_options" class="btn btn-primary">Save</button>
+        </div>
+        <div id="status"></div>
 
-  <div align="right">
-    <button onclick="save_options()">Save</button>
-  </div>
-  <div id="status"></div>
-
-
+      </div>
+      <div class="col-sm-4">
+        
+      </div>
+    </div>
   </div>
 </body>
+
 </html>

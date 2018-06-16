@@ -1,5 +1,5 @@
 
-chrome.extension.onRequest.addListener(
+chrome.extension.onMessage.addListener(
   function(request, sender, sendResponse) {
     console.log('content request action:'+request.action+' pos:'+request.pos);
     if (request.action == "getScrollTop"){
@@ -19,5 +19,5 @@ chrome.extension.onRequest.addListener(
 });
 
 //alert('ready');
-chrome.extension.sendRequest({action: "ready"});
+chrome.extension.sendMessage({action: "ready"});
 
